@@ -55,11 +55,13 @@ type window struct {
 	wnd     *ui.Main
 	status  *ui.Static
 	path    *ui.Edit
+	browse  *ui.Button
 	launch  *ui.Button
 	port    *ui.Edit
 	access  *ui.ComboBox
 	apply   *ui.Button
 	tray    *ui.CheckBox
+	toTray  *ui.CheckBox
 	langSel *ui.ComboBox
 	urls    *ui.ComboBox
 	open    *ui.Button
@@ -90,6 +92,9 @@ type Options struct {
 // Run shows the Host app and blocks until the user exits from the tray menu.
 func Run(a *app.App, cfg config.Config, cfgPath string, opts Options) int {
 	runtime.LockOSThread()
+	if _, err := win.CoInitializeEx(co.COINIT_APARTMENTTHREADED | co.COINIT_DISABLE_OLE1DDE); err == nil {
+		defer win.CoUninitialize()
+	}
 	if !singleInstance() {
 		// UIPI blocks posting to an elevated instance, so tell the user instead of exiting silently.
 		if h := findWindow(className); h == 0 || h.PostMessage(wmShowMe, 0, 0) != nil {
@@ -124,7 +129,7 @@ func (w *window) build() {
 		ClassName(className).
 		ClassIconId(appIconID).
 		Title(w.t("title")).
-		Size(ui.DpiX(560), ui.DpiY(620)).
+		Size(ui.DpiX(560), ui.DpiY(646)).
 		Center(true).
 		CmdShow(show))
 
@@ -138,7 +143,8 @@ func (w *window) build() {
 	w.status = ui.NewStatic(w.wnd, ui.OptsStatic().Position(ui.DpiX(x0), ui.DpiY(12)).Size(ui.DpiX(536), ui.DpiY(20)))
 
 	label("hwinfo", x0, 44, 88)
-	w.path = ui.NewEdit(w.wnd, ui.OptsEdit().Text(w.cfg.HWiNFOPath).Position(ui.DpiX(x1), ui.DpiY(44)).Width(ui.DpiX(300)))
+	w.path = ui.NewEdit(w.wnd, ui.OptsEdit().Text(w.cfg.HWiNFOPath).Position(ui.DpiX(x1), ui.DpiY(44)).Width(ui.DpiX(210)))
+	w.browse = ui.NewButton(w.wnd, ui.OptsButton().Text(w.t("browse")).Position(ui.DpiX(x1+218), ui.DpiY(43)).Width(ui.DpiX(82)))
 	w.launch = ui.NewButton(w.wnd, ui.OptsButton().Text(w.t("launch")).Position(ui.DpiX(x2), ui.DpiY(43)).Width(ui.DpiX(136)))
 
 	label("port", x0, 78, 88)
@@ -155,6 +161,11 @@ func (w *window) build() {
 		trayState = co.BST_CHECKED
 	}
 	w.tray = ui.NewCheckBox(w.wnd, ui.OptsCheckBox().Text(w.t("startInTray")).State(trayState).Position(ui.DpiX(x0), ui.DpiY(114)).Size(ui.DpiX(280), ui.DpiY(20)))
+	toTrayState := co.BST_UNCHECKED
+	if w.cfg.CloseToTray {
+		toTrayState = co.BST_CHECKED
+	}
+	w.toTray = ui.NewCheckBox(w.wnd, ui.OptsCheckBox().Text(w.t("closeToTray")).State(toTrayState).Position(ui.DpiX(x0), ui.DpiY(140)).Size(ui.DpiX(280), ui.DpiY(20)))
 	label("language", 300, 112, 100)
 	langIdx := 0
 	if w.lang == "ru" {
@@ -162,18 +173,18 @@ func (w *window) build() {
 	}
 	w.langSel = ui.NewComboBox(w.wnd, ui.OptsComboBox().Texts("English", "Русский").Select(langIdx).Position(ui.DpiX(x2), ui.DpiY(112)).Width(ui.DpiX(136)))
 
-	label("dashboard", x0, 150, 88)
-	w.urls = ui.NewComboBox(w.wnd, ui.OptsComboBox().Position(ui.DpiX(x1), ui.DpiY(150)).Width(ui.DpiX(300)))
-	w.open = ui.NewButton(w.wnd, ui.OptsButton().Text(w.t("open")).Position(ui.DpiX(x2), ui.DpiY(149)).Width(ui.DpiX(136)))
+	label("dashboard", x0, 176, 88)
+	w.urls = ui.NewComboBox(w.wnd, ui.OptsComboBox().Position(ui.DpiX(x1), ui.DpiY(176)).Width(ui.DpiX(300)))
+	w.open = ui.NewButton(w.wnd, ui.OptsButton().Text(w.t("open")).Position(ui.DpiX(x2), ui.DpiY(175)).Width(ui.DpiX(136)))
 
-	w.qrRect = win.RECT{Left: int32(ui.DpiX(x0)), Top: int32(ui.DpiY(186)), Right: int32(ui.DpiX(x0 + 200)), Bottom: int32(ui.DpiY(386))}
-	w.scan = ui.NewStatic(w.wnd, ui.OptsStatic().Text(w.t("scan")).Position(ui.DpiX(x0+216), ui.DpiY(190)).Size(ui.DpiX(320), ui.DpiY(60)))
+	w.qrRect = win.RECT{Left: int32(ui.DpiX(x0)), Top: int32(ui.DpiY(212)), Right: int32(ui.DpiX(x0 + 200)), Bottom: int32(ui.DpiY(412))}
+	w.scan = ui.NewStatic(w.wnd, ui.OptsStatic().Text(w.t("scan")).Position(ui.DpiX(x0+216), ui.DpiY(216)).Size(ui.DpiX(320), ui.DpiY(60)))
 
-	label("log", x0, 396, 200)
+	label("log", x0, 422, 200)
 	w.logBox = ui.NewEdit(w.wnd, ui.OptsEdit().
 		CtrlStyle(co.ES_MULTILINE|co.ES_READONLY|co.ES_AUTOVSCROLL).
 		WndStyle(co.WS_CHILD|co.WS_VISIBLE|co.WS_VSCROLL|co.WS_TABSTOP).
-		Position(ui.DpiX(x0), ui.DpiY(420)).Width(ui.DpiX(536)).Height(ui.DpiY(188)))
+		Position(ui.DpiX(x0), ui.DpiY(446)).Width(ui.DpiX(536)).Height(ui.DpiY(188)))
 
 	w.events()
 }
@@ -200,7 +211,7 @@ func (w *window) events() {
 		}
 	})
 	w.wnd.On().WmClose(func() {
-		if w.exiting {
+		if w.exiting || !w.cfg.CloseToTray {
 			w.wnd.Hwnd().DestroyWindow()
 			return
 		}
@@ -252,11 +263,16 @@ func (w *window) events() {
 	w.wnd.On().WmCtlColorEdit(colorEdit)
 	w.wnd.On().WmCtlColorListBox(colorEdit)
 
+	w.browse.On().BnClicked(w.browseHWiNFO)
 	w.launch.On().BnClicked(w.launchHWiNFO)
 	w.apply.On().BnClicked(w.applyServer)
 	w.open.On().BnClicked(w.openDashboard)
 	w.tray.On().BnClicked(func() {
 		w.cfg.StartInTray = w.tray.IsChecked()
+		w.save()
+	})
+	w.toTray.On().BnClicked(func() {
+		w.cfg.CloseToTray = w.toTray.IsChecked()
 		w.save()
 	})
 	w.langSel.On().CbnSelChange(func() {
@@ -354,6 +370,18 @@ func (w *window) openDashboard() {
 	if u := w.urls.CurrentText(); u != "" {
 		hwinfo.ShellOpen(u, "")
 	}
+}
+
+func (w *window) browseHWiNFO() {
+	p, ok := pickExe(w.wnd.Hwnd(), w.t("browseTitle"), w.t("programs"), strings.TrimSpace(w.path.Text()))
+	if !ok {
+		return
+	}
+	w.path.SetText(p)
+	w.cfg.HWiNFOPath = p
+	w.save()
+	w.log(w.t("logPath"), p)
+	w.applyTheme(false)
 }
 
 func (w *window) launchHWiNFO() {
@@ -460,9 +488,11 @@ func (w *window) relabel() {
 	for s, key := range w.labels {
 		s.Hwnd().SetWindowText(w.t(key))
 	}
+	w.browse.Hwnd().SetWindowText(w.t("browse"))
 	w.launch.Hwnd().SetWindowText(w.t("launch"))
 	w.apply.Hwnd().SetWindowText(w.t("apply"))
 	w.tray.Hwnd().SetWindowText(w.t("startInTray"))
+	w.toTray.Hwnd().SetWindowText(w.t("closeToTray"))
 	w.open.Hwnd().SetWindowText(w.t("open"))
 	w.scan.Hwnd().SetWindowText(w.t("scan"))
 	sel := w.access.SelectedIndex()
@@ -504,7 +534,7 @@ func (w *window) applyTheme(force bool) {
 	if dark {
 		explorer, cfd = "DarkMode_Explorer", "DarkMode_CFD"
 	}
-	for _, c := range []win.HWND{w.launch.Hwnd(), w.apply.Hwnd(), w.open.Hwnd(), w.logBox.Hwnd(), w.path.Hwnd(), w.port.Hwnd()} {
+	for _, c := range []win.HWND{w.browse.Hwnd(), w.launch.Hwnd(), w.apply.Hwnd(), w.open.Hwnd(), w.logBox.Hwnd(), w.path.Hwnd(), w.port.Hwnd()} {
 		setTheme(c, explorer, false)
 	}
 	for _, c := range []win.HWND{w.access.Hwnd(), w.langSel.Hwnd(), w.urls.Hwnd()} {
@@ -512,6 +542,7 @@ func (w *window) applyTheme(force bool) {
 	}
 	// Themed checkboxes ignore WM_CTLCOLORSTATIC text color, so dark mode uses the classic look.
 	setTheme(w.tray.Hwnd(), explorer, dark)
+	setTheme(w.toTray.Hwnd(), explorer, dark)
 	h.RedrawWindow(nil, 0, co.RDW_ERASE|co.RDW_INVALIDATE|co.RDW_ALLCHILDREN|co.RDW_FRAME)
 }
 

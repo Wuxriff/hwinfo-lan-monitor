@@ -15,6 +15,7 @@ type Config struct {
 	LANAccess   bool   `json:"lanAccess"`
 	HWiNFOPath  string `json:"hwinfoPath"`
 	StartInTray bool   `json:"startInTray"`
+	CloseToTray bool   `json:"closeToTray"`
 	Language    string `json:"language"`
 	Window      *Point `json:"window,omitempty"`
 }
@@ -26,7 +27,7 @@ type Point struct {
 }
 
 func Default() Config {
-	return Config{Port: 8086, LANAccess: true}
+	return Config{Port: 8086, LANAccess: true, CloseToTray: true}
 }
 
 func (c Config) Addr() string {

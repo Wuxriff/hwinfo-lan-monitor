@@ -29,6 +29,15 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	}
 }
 
+func TestLoadOldConfigKeepsCloseToTray(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "config.json")
+	os.WriteFile(p, []byte(`{"port": 8086, "lanAccess": true, "startInTray": true}`), 0o644)
+	c, _ := Load(p)
+	if !c.CloseToTray {
+		t.Errorf("got %+v", c)
+	}
+}
+
 func TestLoadFixesBadPort(t *testing.T) {
 	p := filepath.Join(t.TempDir(), "config.json")
 	os.WriteFile(p, []byte(`{"port": 0, "lanAccess": true}`), 0o644)
