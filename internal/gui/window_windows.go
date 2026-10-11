@@ -114,6 +114,7 @@ func (w *window) build() {
 		ClassIconId(appIconID).
 		Title(w.t("title")).
 		Size(ui.DpiX(560), ui.DpiY(620)).
+		Center(true).
 		CmdShow(show))
 
 	x0, x1, x2 := 12, 104, 412
@@ -172,6 +173,7 @@ func (w *window) events() {
 		w.applyTheme(true)
 		w.listen()
 		w.detectHWiNFO()
+		w.restorePosition()
 		w.wnd.Hwnd().SetTimer(timerWatch, 2000)
 		go w.watchSource()
 		return 0
@@ -180,6 +182,7 @@ func (w *window) events() {
 		w.detectHWiNFO()
 		w.applyTheme(false)
 	})
+	w.wnd.On().WmExitSizeMove(w.savePosition)
 	w.wnd.On().WmSize(func(p ui.WmSize) {
 		if p.Request() == co.SIZE_REQ_MINIMIZED {
 			w.wnd.Hwnd().ShowWindow(co.SW_HIDE)
@@ -535,4 +538,33 @@ func (w *window) paint() {
 			hdc.FillRect(&rc, black)
 		}
 	}
+}
+
+// --- window position ---
+
+// restorePosition moves the window to where the user left it, unless that spot
+// is no longer on any monitor; otherwise the window stays centered.
+func (w *window) restorePosition() {
+	p := w.cfg.Window
+	if p == nil {
+		return
+	}
+	grip := win.POINT{X: int32(p.X + ui.DpiX(40)), Y: int32(p.Y + ui.DpiY(10))}
+	if win.MonitorFromPoint(grip, co.MONITOR_DEFAULTTONULL) == 0 {
+		return
+	}
+	w.wnd.Hwnd().SetWindowPos(0, win.POINT{X: int32(p.X), Y: int32(p.Y)}, win.SIZE{}, co.SWP_NOSIZE|co.SWP_NOZORDER|co.SWP_NOACTIVATE)
+}
+
+func (w *window) savePosition() {
+	rc, err := w.wnd.Hwnd().GetWindowRect()
+	if err != nil {
+		return
+	}
+	p := &config.Point{X: int(rc.Left), Y: int(rc.Top)}
+	if w.cfg.Window != nil && *w.cfg.Window == *p {
+		return
+	}
+	w.cfg.Window = p
+	w.save()
 }

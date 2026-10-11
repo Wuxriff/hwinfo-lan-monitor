@@ -16,6 +16,13 @@ type Config struct {
 	HWiNFOPath  string `json:"hwinfoPath"`
 	StartInTray bool   `json:"startInTray"`
 	Language    string `json:"language"`
+	Window      *Point `json:"window,omitempty"`
+}
+
+// Point is the last top-left corner of the Host app window, in screen pixels.
+type Point struct {
+	X int `json:"x"`
+	Y int `json:"y"`
 }
 
 func Default() Config {
