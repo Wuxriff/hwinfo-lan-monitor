@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>HWiNFO LAN Monitor</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="bar">
+  <input id="search" class="search" type="search" autocomplete="off" spellcheck="false">
+  <span id="status" class="status"></span>
+  <button id="settingsBtn" class="iconbtn" type="button" aria-label="Settings">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.7 7.7 0 0 0-1.7-1L15 3h-4l-.4 2.9a7.7 7.7 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.7 7.7 0 0 0 1.7 1L11 21h4l.4-2.9a7.7 7.7 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
+  </button>
+</header>
+<div id="banner" class="banner" hidden></div>
+<main class="scroller">
+  <table id="grid">
+    <thead><tr id="headRow"></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</main>
+
+<dialog id="settings" class="settings">
+  <form method="dialog">
+    <h2 data-i18n="settings" tabindex="-1" autofocus></h2>
+
+    <label class="field"><span data-i18n="theme"></span>
+      <select id="themeSel">
+        <option value="auto" data-i18n="themeAuto"></option>
+        <option value="light" data-i18n="themeLight"></option>
+        <option value="dark" data-i18n="themeDark"></option>
+      </select>
+    </label>
+
+    <label class="field"><span data-i18n="refresh"></span>
+      <select id="refreshSel"></select>
+    </label>
+
+    <label class="field"><span data-i18n="language"></span>
+      <select id="langSel">
+        <option value="en">English</option>
+        <option value="ru">Русский</option>
+      </select>
+    </label>
+
+    <div class="field"><span data-i18n="columns"></span>
+      <ul id="colList" class="collist"></ul>
+    </div>
+
+    <div class="actions">
+      <button type="button" id="expandAll" data-i18n="expandAll"></button>
+      <button type="button" id="collapseAll" data-i18n="collapseAll"></button>
+      <button type="button" id="resetLayout" data-i18n="resetLayout"></button>
+    </div>
+    <div class="actions end"><button value="close" data-i18n="close"></button></div>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>

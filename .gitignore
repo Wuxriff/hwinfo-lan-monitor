@@ -1,0 +1,5 @@
+/dist/
+/bin/
+*.exe
+config.json
+/testdata/live.*

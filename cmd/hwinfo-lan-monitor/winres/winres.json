@@ -1,0 +1,41 @@
+{
+  "RT_GROUP_ICON": {
+    "#1": {
+      "0000": "icon.png"
+    }
+  },
+  "RT_MANIFEST": {
+    "#1": {
+      "0409": {
+        "identity": {
+          "name": "HWiNFOLanMonitor",
+          "version": "0.1.0.0"
+        },
+        "description": "HWiNFO LAN Monitor",
+        "minimum-os": "win10",
+        "execution-level": "as invoker",
+        "dpi-awareness": "per monitor v2",
+        "use-common-controls-v6": true
+      }
+    }
+  },
+  "RT_VERSION": {
+    "#1": {
+      "0000": {
+        "fixed": {
+          "file_version": "0.1.0.0",
+          "product_version": "0.1.0.0"
+        },
+        "info": {
+          "0409": {
+            "FileDescription": "HWiNFO LAN Monitor",
+            "FileVersion": "0.1.0",
+            "OriginalFilename": "hwinfo-lan-monitor.exe",
+            "ProductName": "HWiNFO LAN Monitor",
+            "ProductVersion": "0.1.0"
+          }
+        }
+      }
+    }
+  }
+}
