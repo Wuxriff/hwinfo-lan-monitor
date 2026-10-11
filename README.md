@@ -1,64 +1,76 @@
 # HWiNFO LAN Monitor
 
-Показывает окно сенсоров HWiNFO в браузере на любом устройстве в локальной сети: телефоне, планшете, другом ПК. Один exe без установки.
+**English** | [Русский](README.ru.md)
 
-## Как пользоваться
+Watch your PC sensors from your phone. HWiNFO LAN Monitor reads sensor data from [HWiNFO](https://www.hwinfo.com/) and serves it as a fast web page on your local network. Glance at temperatures, clocks and fan speeds on a phone or tablet without leaving your game or minimizing anything.
 
-1. Запустите `HWiNFO64.exe`. В настройках (Settings, вкладка General / User Interface) включите **Shared Memory Support**.
-   - Если галку включили при уже запущенном HWiNFO, перезапустите его: на лету shared memory может не подняться.
-   - Бесплатная версия HWiNFO выключает shared memory через 12 часов. Тогда включите галку снова.
-   - Окно сенсоров должно быть открыто или свёрнуто, но не закрыто.
-2. Запустите `hwinfo-lan-monitor.exe`. Окно покажет статус подключения, адреса дашборда и QR-код.
-3. Отсканируйте QR телефоном или откройте адрес в браузере.
+![Dashboard on a phone: dark and light themes, English and Russian, settings](assets/screenshots/phones.png)
 
-Закрытие окна сворачивает программу в трей. Выход через правый клик по иконке в трее, пункт **Exit**.
+## Why
 
-### Доступ с телефона
+- **Made for phones.** A dense HWiNFO-style table that fits a 6" screen in portrait. Rotate to landscape to see all columns.
+- **Looks like HWiNFO.** Sensors, collapsible groups (per-core clocks, usage, power...), Current / Minimum / Maximum / Average.
+- **Light on resources.** One small `.exe`, no installer, no runtime. The page only updates changed cells and pauses when the phone screen is off.
+- **Nothing to configure.** Start it, scan the QR code, done.
 
-Если телефон не открывает страницу, Windows Firewall блокирует порт. Разрешите его один раз из PowerShell **от администратора**:
+## Quick start
+
+1. In HWiNFO open **Settings** and enable **Shared Memory Support**. Keep the sensors window open (minimized is fine).
+2. Download `hwinfo-lan-monitor.exe` from [Releases](../../releases) and run it.
+3. Scan the QR code in the window with your phone, or open one of the listed addresses in any browser on the same network.
+
+![Host app window, light and dark](assets/screenshots/app.png)
+
+Closing the window hides it to the tray. Exit from the tray icon menu.
+
+### The phone cannot open the page
+
+Windows Firewall blocks incoming connections by default. Allow the port once from PowerShell **as administrator**:
 
 ```powershell
 .\scripts\firewall-rule.ps1
 ```
 
-Правило открывает TCP 8086 только для частных (Private) сетей. Убрать правило: `.\scripts\firewall-rule.ps1 -Remove`. Если меняли порт: `-Port <номер>`.
+The rule allows TCP 8086 on private (home) networks only. Remove it with `-Remove`, use another port with `-Port <n>`.
 
-## Настройки
+## Features
 
-**Окно программы** (хранится в `config.json` рядом с exe):
-- Порт и режим доступа: "Локальная сеть" или "Только этот ПК". Применяются кнопкой **Apply**.
-- Путь к HWiNFO определяется сам по запущенному процессу. Кнопка **Launch HWiNFO** запускает его.
-- "Запускать свёрнутым в трей" и язык (RU/EN).
-- Тема окна повторяет режим HWiNFO (`DarkMode` в `HWiNFO64.INI`).
+**Dashboard** (settings under the gear icon, stored per browser):
+- Theme: Auto (follows the device), Light, Dark.
+- Refresh interval: as fast as HWiNFO polls, or slower.
+- Language: English, Russian.
+- Columns: show, hide and reorder (arrows, or drag the headers on a PC).
+- Expanded sensors and groups are remembered. Search filters readings by name.
+- Changed values are highlighted like in HWiNFO.
 
-**Дашборд** (шестерёнка справа вверху, хранится в браузере отдельно для каждого устройства):
-- Тема: Авто (по системе), Светлая, Тёмная.
-- Частота обновления: как в HWiNFO или реже.
-- Язык.
-- Столбцы: показать или скрыть, порядок (▲▼ или перетаскиванием заголовков на ПК).
-- Развернуть или свернуть всё, сбросить вид.
+**Host app window** (stored in `config.json` next to the exe):
+- Port and access mode: local network or this PC only.
+- HWiNFO location is detected automatically; a button starts HWiNFO if it is not running.
+- Start minimized to tray, language.
+- Follows HWiNFO's light or dark mode. Remembers its position on screen.
 
-Раскрытые сенсоры и группы запоминаются. Поиск фильтрует показания по имени.
+## Good to know
 
-Частоту опроса задаёт сам HWiNFO (Settings, Sensors, Polling Period). Через shared memory её можно только прочитать.
+- **HWiNFO free version** turns shared memory off after 12 hours. Enable it again in HWiNFO settings; the monitor reconnects by itself. If you enable it while HWiNFO is already running and nothing happens, restart HWiNFO.
+- **Polling period** is set in HWiNFO (Settings, Sensors). The monitor shows it but cannot change it.
+- **Groups** such as "Core Clocks" are not published by HWiNFO, so the monitor rebuilds them from reading names ("Core 0 ...", "Core 1 ..."). Names may differ slightly from HWiNFO.
+- **Min / Max / Average** come from HWiNFO and can only be reset there.
+- **New HWiNFO versions** should keep working: the shared memory format has only ever grown at the end, and the reader follows the sizes HWiNFO reports.
 
-## Ограничения
+## Building
 
-- Группы внутри сенсора (Core Clocks и подобные) HWiNFO в shared memory не отдаёт. Дашборд собирает их сам по меткам вида "Core 0 ...", "Core 1 ...", поэтому имена групп могут слегка отличаться от HWiNFO.
-- Сбросить Min/Max/Average из дашборда нельзя: shared memory доступна только для чтения. Сброс делается в HWiNFO.
-
-## Сборка
-
-Нужны PowerShell 7, Go 1.27+ в `PATH` и go-winres для иконки и манифеста:
+Requires PowerShell 7, Go 1.27+ and go-winres (icon and manifest):
 
 ```powershell
 go install github.com/tc-hib/go-winres@v0.3.3
+.\scripts\build-release.ps1          # vet, tests, resources, dist\hwinfo-lan-monitor.exe
+.\scripts\run-dev.ps1                # headless dev server on :8086
 ```
 
-Если Go лежит не в `PATH`, положите рядом со скриптами свой `scripts\env.ps1`: скрипты сборки подключат его сами.
+If Go is not on `PATH`, put your own `scripts\env.ps1` next to the scripts; they load it automatically.
 
-| Скрипт | Что делает |
-|---|---|
-| `scripts\build-release.ps1` | vet, тесты, ресурсы, сборка в `dist\hwinfo-lan-monitor.exe` |
-| `scripts\run-dev.ps1` | Сборка и запуск для разработки |
-| `scripts\firewall-rule.ps1` | Правило Windows Firewall (от администратора) |
+For screenshots and development without HWiNFO, run with synthetic sensors: `hwinfo-lan-monitor.exe -demo dark` (or `-demo light`).
+
+## Releases
+
+Releases are made by hand from GitHub: **Actions → Release → Run workflow**, choose which part of the version to bump (patch, minor, major) or type an exact version. The workflow builds and tests on Windows, tags `vX.Y.Z` and publishes a GitHub Release with the exe and its SHA-256.

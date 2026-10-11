@@ -47,6 +47,7 @@ var (
 
 type window struct {
 	app     *app.App
+	opts    Options
 	cfg     config.Config
 	cfgPath string
 	lang    string
@@ -79,8 +80,15 @@ type window struct {
 	exiting   bool
 }
 
+// Options changes behaviour for demo screenshots: no HWiNFO detection, no
+// config writes, and a fixed color mode.
+type Options struct {
+	Demo bool
+	Dark bool
+}
+
 // Run shows the Host app and blocks until the user exits from the tray menu.
-func Run(a *app.App, cfg config.Config, cfgPath string) int {
+func Run(a *app.App, cfg config.Config, cfgPath string, opts Options) int {
 	runtime.LockOSThread()
 	if !singleInstance() {
 		// UIPI blocks posting to an elevated instance, so tell the user instead of exiting silently.
@@ -93,7 +101,10 @@ func Run(a *app.App, cfg config.Config, cfgPath string) int {
 		}
 		return 0
 	}
-	w := &window{app: a, cfg: cfg, cfgPath: cfgPath, labels: map[*ui.Static]string{}}
+	if opts.Demo {
+		cfg.HWiNFOPath, cfg.Window, cfg.StartInTray = `C:\Program Files\HWiNFO64\HWiNFO64.exe`, nil, false
+	}
+	w := &window{app: a, cfg: cfg, cfgPath: cfgPath, opts: opts, labels: map[*ui.Static]string{}}
 	w.lang = cfg.Language
 	if w.lang == "" {
 		w.lang = windowsLanguage()
@@ -299,6 +310,9 @@ func (w *window) restore() {
 // --- actions ---
 
 func (w *window) save() {
+	if w.opts.Demo {
+		return
+	}
 	if err := config.Save(w.cfgPath, w.cfg); err != nil {
 		w.log(w.t("logSaveErr"), err)
 	}
@@ -358,6 +372,10 @@ func (w *window) launchHWiNFO() {
 }
 
 func (w *window) detectHWiNFO() {
+	if w.opts.Demo {
+		w.launch.Hwnd().EnableWindow(false)
+		return
+	}
 	running := hwinfo.IsRunning()
 	w.launch.Hwnd().EnableWindow(!running)
 	if !running || w.cfg.HWiNFOPath != "" {
@@ -459,8 +477,8 @@ func (w *window) relabel() {
 // --- theme ---
 
 func (w *window) applyTheme(force bool) {
-	dark := false
-	if p := w.cfg.HWiNFOPath; p != "" {
+	dark := w.opts.Dark
+	if p := w.cfg.HWiNFOPath; p != "" && !w.opts.Demo {
 		if d, ok := hwinfo.DarkMode(p); ok {
 			dark = d
 		}
