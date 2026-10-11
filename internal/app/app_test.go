@@ -4,6 +4,8 @@ import (
 	"net"
 	"net/http"
 	"testing"
+
+	"github.com/Wuxriff/hwinfo-lan-monitor/internal/shm"
 )
 
 func freePort(t *testing.T) string {
@@ -26,7 +28,7 @@ func get(t *testing.T, addr string) int {
 }
 
 func TestListenAgainOnSamePort(t *testing.T) {
-	a := New()
+	a := New(shm.ReadRaw)
 	defer a.Close()
 	addr := freePort(t)
 	if err := a.Listen(addr); err != nil {
@@ -41,7 +43,7 @@ func TestListenAgainOnSamePort(t *testing.T) {
 }
 
 func TestListenOnBusyPortKeepsPrevious(t *testing.T) {
-	a := New()
+	a := New(shm.ReadRaw)
 	defer a.Close()
 	addr := freePort(t)
 	if err := a.Listen(addr); err != nil {

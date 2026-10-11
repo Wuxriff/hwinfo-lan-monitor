@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/Wuxriff/hwinfo-lan-monitor/internal/server"
-	"github.com/Wuxriff/hwinfo-lan-monitor/internal/shm"
 	"github.com/Wuxriff/hwinfo-lan-monitor/internal/source"
 	"github.com/Wuxriff/hwinfo-lan-monitor/web"
 )
@@ -26,10 +25,14 @@ type App struct {
 	ln         net.Listener
 	addr       *net.TCPAddr
 	listenAddr string
+
+	// FixedURLs replaces the detected Dashboard addresses (demo screenshots).
+	FixedURLs []string
 }
 
-func New() *App {
-	src := source.New(shm.ReadRaw)
+// New reads HWiNFO shared memory through read, normally shm.ReadRaw.
+func New(read func() ([]byte, error)) *App {
+	src := source.New(read)
 	return &App{Source: src, handler: server.New(src, web.FS())}
 }
 
@@ -85,6 +88,9 @@ func (a *App) stopLocked() {
 
 // URLs lists Dashboard addresses: LAN IPv4 addresses first, then localhost.
 func (a *App) URLs() []string {
+	if a.FixedURLs != nil {
+		return a.FixedURLs
+	}
 	a.mu.Lock()
 	ad := a.addr
 	a.mu.Unlock()

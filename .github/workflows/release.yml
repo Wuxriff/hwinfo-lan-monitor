@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version part to increment from the latest vX.Y.Z tag
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      version:
+        description: Exact version instead of bumping, e.g. 1.2.0 (optional)
+        type: string
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install go-winres
+        run: |
+          go install github.com/tc-hib/go-winres@v0.3.3
+          "$(go env GOPATH)\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+
+      - name: Compute version
+        id: version
+        env:
+          BUMP: ${{ inputs.bump }}
+          EXACT: ${{ inputs.version }}
+        run: |
+          $exact = $env:EXACT.Trim().TrimStart('v')
+          if ($exact) {
+            if ($exact -notmatch '^\d+\.\d+\.\d+$') { throw "Version must look like 1.2.3, got '$exact'" }
+            $next = $exact
+          } else {
+            $last = git tag --list 'v*' --sort=-v:refname | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' } | Select-Object -First 1
+            if (-not $last) {
+              $next = '0.1.0'
+            } else {
+              $p = [int[]]($last.TrimStart('v') -split '\.')
+              switch ($env:BUMP) {
+                'major' { $p = @(($p[0] + 1), 0, 0) }
+                'minor' { $p = @($p[0], ($p[1] + 1), 0) }
+                default { $p = @($p[0], $p[1], ($p[2] + 1)) }
+              }
+              $next = $p -join '.'
+            }
+          }
+          if (git tag --list "v$next") { throw "Tag v$next already exists" }
+          "version=$next" | Out-File -Append -Encoding utf8 $env:GITHUB_OUTPUT
+          Write-Host "Releasing v$next"
+
+      - name: Build and test
+        run: ./scripts/build-release.ps1 -Version ${{ steps.version.outputs.version }}
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $exe = 'dist\hwinfo-lan-monitor.exe'
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  hwinfo-lan-monitor.exe" | Out-File -Encoding ascii dist\hwinfo-lan-monitor.exe.sha256
+          gh release create "v$env:VERSION" $exe dist\hwinfo-lan-monitor.exe.sha256 `
+            --target $env:GITHUB_SHA `
+            --title "v$env:VERSION" `
+            --generate-notes
