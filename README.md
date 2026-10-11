@@ -21,7 +21,7 @@ Watch your PC sensors from your phone. HWiNFO LAN Monitor reads sensor data from
 
 ![Host app window, light and dark](assets/screenshots/app.png)
 
-Closing the window hides it to the tray. Exit from the tray icon menu.
+Closing the window hides it to the tray (turn off "Minimize to tray on close" to exit instead). Exit from the tray icon menu.
 
 ### The phone cannot open the page
 
@@ -45,8 +45,8 @@ The rule allows TCP 8086 on private (home) networks only. Remove it with `-Remov
 
 **Host app window** (stored in `config.json` next to the exe):
 - Port and access mode: local network or this PC only.
-- HWiNFO location is detected automatically; a button starts HWiNFO if it is not running.
-- Start minimized to tray, language.
+- HWiNFO location is detected automatically or chosen with Browse; a button starts HWiNFO if it is not running.
+- Start minimized to tray, minimize to tray on close, language.
 - Follows HWiNFO's light or dark mode. Remembers its position on screen.
 
 ## Good to know
